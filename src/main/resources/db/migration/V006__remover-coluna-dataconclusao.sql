@@ -1,0 +1,1 @@
+ALTER TABLE tarefa DROP COLUMN dataConclusao;
