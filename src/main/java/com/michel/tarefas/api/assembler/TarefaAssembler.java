@@ -18,7 +18,11 @@ public class TarefaAssembler {
 
 
     public Tarefa toEntity(TarefaInput input) {
-        Tarefa tarefa = modelMapper.map(input, Tarefa.class);
+        Tarefa tarefa = new Tarefa();
+
+        tarefa.setTitulo(input.getTitulo());
+        tarefa.setDescricao(input.getDescricao());
+        tarefa.setStatus(input.getStatus());
 
         if (input.getUsuarioId() != null) {
             Usuario usuario = new Usuario();

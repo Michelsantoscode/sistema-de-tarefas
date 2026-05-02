@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefas API</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+          --bg: #0f0f11;
+          --surface: #1a1a1f;
+          --surface2: #22222a;
+          --border: rgba(255,255,255,0.08);
+          --border2: rgba(255,255,255,0.14);
+          --text: #f0efe8;
+          --muted: #888882;
+          --accent: #7f77dd;
+          --accent-light: #afa9ec;
+          --success: #1d9e75;
+          --success-light: #9fe1cb;
+          --warn: #ba7517;
+          --warn-light: #fac775;
+          --danger: #a32d2d;
+          --danger-light: #f7c1c1;
+          --font: 'DM Sans', sans-serif;
+          --mono: 'DM Mono', monospace;
+        }
+
+        body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+        .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+          background: var(--surface);
+          border-right: 0.5px solid var(--border);
+          padding: 24px 0;
+          display: flex; flex-direction: column;
+          position: sticky; top: 0; height: 100vh;
+        }
+
+        .logo {
+          padding: 0 20px 24px;
+          border-bottom: 0.5px solid var(--border);
+          font-size: 15px; font-weight: 500;
+          display: flex; align-items: center; gap: 10px;
+          letter-spacing: -0.3px;
+        }
+
+        .logo-icon {
+          width: 28px; height: 28px; border-radius: 8px;
+          background: var(--accent);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px;
+        }
+
+        .nav { padding: 16px 12px; flex: 1; }
+
+        .nav-section { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 8px; margin-bottom: 6px; margin-top: 16px; font-family: var(--mono); }
+
+        .nav-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 8px 10px; border-radius: 8px;
+          cursor: pointer; color: var(--muted);
+          font-size: 13px; transition: all 0.15s;
+          border: none; background: none; width: 100%; text-align: left;
+        }
+
+        .nav-item:hover { background: var(--surface2); color: var(--text); }
+        .nav-item.active { background: rgba(127,119,221,0.12); color: var(--accent-light); }
+
+        .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.5; flex-shrink: 0; }
+
+        .sidebar-stats { padding: 16px 20px; border-top: 0.5px solid var(--border); }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .stat-label { font-size: 12px; color: var(--muted); }
+        .stat-val { font-size: 12px; font-family: var(--mono); color: var(--text); }
+
+        /* Main */
+        .main { padding: 32px; overflow: auto; }
+
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+
+        .header-left h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
+        .header-left p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+        .btn {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 9px 16px; border-radius: 8px; font-size: 13px;
+          cursor: pointer; transition: all 0.15s; border: none; font-family: var(--font);
+        }
+
+        .btn-primary { background: var(--accent); color: #fff; font-weight: 500; }
+        .btn-primary:hover { background: var(--accent-light); color: #26215c; }
+
+        .btn-ghost { background: var(--surface2); color: var(--muted); border: 0.5px solid var(--border2); }
+        .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+        /* Summary cards */
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+
+        .card {
+          background: var(--surface); border: 0.5px solid var(--border);
+          border-radius: 12px; padding: 16px 20px;
+        }
+
+        .card-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+        .card-num { font-size: 28px; font-weight: 300; letter-spacing: -1px; }
+        .card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        .card.accent { border-color: rgba(127,119,221,0.3); }
+        .card.success { border-color: rgba(29,158,117,0.3); }
+
+        /* Toolbar */
+        .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+
+        .search-box {
+          flex: 1; display: flex; align-items: center; gap: 10px;
+          background: var(--surface); border: 0.5px solid var(--border2);
+          border-radius: 8px; padding: 8px 14px;
+        }
+
+        .search-box input {
+          border: none; background: none; color: var(--text); font-size: 13px; font-family: var(--font); outline: none; width: 100%;
+        }
+
+        .search-box input::placeholder { color: var(--muted); }
+
+        .filter-btn {
+          padding: 8px 14px; border-radius: 8px; font-size: 12px;
+          cursor: pointer; transition: all 0.15s; border: 0.5px solid var(--border);
+          background: var(--surface); color: var(--muted); font-family: var(--font);
+        }
+
+        .filter-btn.active { border-color: var(--accent); color: var(--accent-light); background: rgba(127,119,221,0.1); }
+        .filter-btn:hover:not(.active) { color: var(--text); border-color: var(--border2); }
+
+        /* Table */
+        .table-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead th {
+          padding: 12px 16px; font-size: 11px; color: var(--muted);
+          letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--mono);
+          text-align: left; border-bottom: 0.5px solid var(--border);
+          font-weight: 400;
+        }
+
+        tbody tr { transition: background 0.1s; cursor: pointer; }
+        tbody tr:hover { background: var(--surface2); }
+        tbody tr:not(:last-child) td { border-bottom: 0.5px solid var(--border); }
+
+        td { padding: 13px 16px; font-size: 13px; vertical-align: middle; }
+
+        .task-title { font-weight: 500; color: var(--text); margin-bottom: 2px; }
+        .task-desc { font-size: 12px; color: var(--muted); }
+
+        .badge {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 3px 10px; border-radius: 20px; font-size: 11px; font-family: var(--mono);
+        }
+
+        .badge-pending { background: rgba(186,117,23,0.12); color: var(--warn-light); border: 0.5px solid rgba(186,117,23,0.25); }
+        .badge-done { background: rgba(29,158,117,0.12); color: var(--success-light); border: 0.5px solid rgba(29,158,117,0.25); }
+
+        .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+        .user-chip {
+          display: inline-flex; align-items: center; gap: 7px;
+          font-size: 12px; color: var(--muted);
+        }
+
+        .avatar {
+          width: 22px; height: 22px; border-radius: 50%;
+          background: rgba(127,119,221,0.2); color: var(--accent-light);
+          font-size: 9px; font-weight: 500; display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .action-row { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+        tbody tr:hover .action-row { opacity: 1; }
+
+        .icon-btn {
+          width: 28px; height: 28px; border-radius: 6px;
+          border: 0.5px solid var(--border2); background: var(--surface);
+          color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+          font-size: 12px; transition: all 0.1s; font-family: var(--font);
+        }
+
+        .icon-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.25); background: var(--surface2); }
+        .icon-btn.danger:hover { color: var(--danger-light); border-color: rgba(163,45,45,0.4); }
+
+        /* Modal overlay */
+        .overlay {
+          display: none; position: fixed; inset: 0;
+          background: rgba(0,0,0,0.7); z-index: 100;
+          align-items: center; justify-content: center;
+        }
+
+        .overlay.open { display: flex; }
+
+        .modal {
+          background: var(--surface); border: 0.5px solid var(--border2);
+          border-radius: 16px; padding: 28px; width: 440px; max-width: 95vw;
+        }
+
+        .modal-title { font-size: 16px; font-weight: 500; margin-bottom: 20px; letter-spacing: -0.3px; }
+
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--mono); margin-bottom: 6px; }
+
+        .field input, .field textarea, .field select {
+          width: 100%; background: var(--surface2); border: 0.5px solid var(--border2);
+          border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px;
+          font-family: var(--font); outline: none; transition: border-color 0.15s;
+          appearance: none;
+        }
+
+        .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+        .field textarea { resize: vertical; min-height: 72px; }
+        .field select option { background: var(--surface2); }
+
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+        .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+        .empty-text { font-size: 14px; }
+
+        .char-count { font-size: 11px; color: var(--muted); text-align: right; margin-top: 4px; font-family: var(--mono); }
+        .char-count.warn { color: var(--warn-light); }
+
+        .toast {
+          position: fixed; bottom: 24px; right: 24px; z-index: 200;
+          background: var(--surface2); border: 0.5px solid var(--border2);
+          border-radius: 10px; padding: 12px 18px; font-size: 13px;
+          display: none; align-items: center; gap: 10px; max-width: 320px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        .toast.show { display: flex; }
+        .toast.ok { border-color: rgba(29,158,117,0.4); }
+        .toast.err { border-color: rgba(163,45,45,0.4); }
+
+        .loading-row td { text-align: center; padding: 40px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+
+        @keyframes pulse { 0%,100% { opacity: 0.4 } 50% { opacity: 1 } }
+        .loading-row td { animation: pulse 1.2s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">✓</div>
+            tarefas.api
+        </div>
+        <nav class="nav">
+            <div class="nav-section">Módulos</div>
+            <button class="nav-item active" onclick="showView('tarefas')">
+                <div class="nav-dot"></div> Tarefas
+            </button>
+            <button class="nav-item" onclick="showView('usuarios')">
+                <div class="nav-dot"></div> Usuários
+            </button>
+        </nav>
+        <div class="sidebar-stats">
+            <div class="stat-row"><span class="stat-label">Pendentes</span><span class="stat-val" id="stat-pend">—</span></div>
+            <div class="stat-row"><span class="stat-label">Concluídas</span><span class="stat-val" id="stat-done">—</span></div>
+            <div class="stat-row"><span class="stat-label">Usuários</span><span class="stat-val" id="stat-users">—</span></div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+        <!-- TAREFAS VIEW -->
+        <div id="view-tarefas">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Tarefas</h1>
+                    <p id="task-count-label">carregando...</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('tarefa')">+ Nova tarefa</button>
+            </div>
+
+            <div class="summary">
+                <div class="card">
+                    <div class="card-label">Total</div>
+                    <div class="card-num" id="c-total">—</div>
+                    <div class="card-sub">tarefas cadastradas</div>
+                </div>
+                <div class="card accent">
+                    <div class="card-label">Pendentes</div>
+                    <div class="card-num" id="c-pend">—</div>
+                    <div class="card-sub">aguardando conclusão</div>
+                </div>
+                <div class="card success">
+                    <div class="card-label">Concluídas</div>
+                    <div class="card-num" id="c-done">—</div>
+                    <div class="card-sub">finalizadas</div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <span style="color:var(--muted);font-size:16px;">⌕</span>
+                    <input id="search-input" placeholder="Buscar por título ou usuário..." oninput="renderTarefas()">
+                </div>
+                <button class="filter-btn active" onclick="setFilter('todos',this)">Todos</button>
+                <button class="filter-btn" onclick="setFilter('PENDENTE',this)">Pendentes</button>
+                <button class="filter-btn" onclick="setFilter('CONCLUIDA',this)">Concluídas</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Tarefa</th>
+                        <th>Status</th>
+                        <th>Usuário</th>
+                        <th>Cadastro</th>
+                        <th>Conclusão</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="tarefas-body">
+                    <tr class="loading-row"><td colspan="6">conectando com a api...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- USUARIOS VIEW -->
+        <div id="view-usuarios" style="display:none">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Usuários</h1>
+                    <p id="user-count-label">carregando...</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('usuario')">+ Novo usuário</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Tarefas</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="usuarios-body">
+                    <tr class="loading-row"><td colspan="4">conectando com a api...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Modal Tarefa -->
+<div class="overlay" id="modal-tarefa">
+    <div class="modal">
+        <div class="modal-title" id="modal-tarefa-title">Nova tarefa</div>
+        <input type="hidden" id="tarefa-id">
+        <div class="field">
+            <label>Título <span style="color:var(--muted);font-family:var(--mono)">(máx. 20)</span></label>
+            <input id="t-titulo" maxlength="20" placeholder="Nome da tarefa" oninput="updateCount('t-titulo','count-titulo',20)">
+            <div class="char-count" id="count-titulo">0/20</div>
+        </div>
+        <div class="field">
+            <label>Descrição <span style="color:var(--muted);font-family:var(--mono)">(máx. 40)</span></label>
+            <textarea id="t-desc" maxlength="40" placeholder="Descreva a tarefa..." oninput="updateCount('t-desc','count-desc',40)"></textarea>
+            <div class="char-count" id="count-desc">0/40</div>
+        </div>
+        <div class="field">
+            <label>Usuário responsável</label>
+            <select id="t-usuario"><option value="">Selecione...</option></select>
+        </div>
+        <div class="field">
+            <label>Status</label>
+            <select id="t-status">
+                <option value="PENDENTE">Pendente</option>
+                <option value="CONCLUIDA">Concluída</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('tarefa')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveTarefa()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Usuário -->
+<div class="overlay" id="modal-usuario">
+    <div class="modal">
+        <div class="modal-title" id="modal-usuario-title">Novo usuário</div>
+        <input type="hidden" id="usuario-id">
+        <div class="field">
+            <label>Nome <span style="color:var(--muted);font-family:var(--mono)">(máx. 100)</span></label>
+            <input id="u-nome" maxlength="100" placeholder="Nome completo">
+        </div>
+        <div class="field">
+            <label>Email</label>
+            <input id="u-email" type="email" maxlength="100" placeholder="email@exemplo.com">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('usuario')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveUsuario()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="overlay" id="modal-confirm">
+    <div class="modal" style="width:360px">
+        <div class="modal-title">Confirmar exclusão</div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6" id="confirm-msg">Deseja excluir este item?</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('confirm')">Cancelar</button>
+            <button class="btn" style="background:var(--danger);color:#fff" onclick="confirmDelete()">Excluir</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // =============================================
+    // CONFIGURAÇÃO — altere a URL base se necessário
+    // =============================================
+    const API = 'http://localhost:8080';
+
+    let tarefas = [], usuarios = [], currentFilter = 'todos';
+    let deleteTarget = null;
+
+    function initials(nome) {
+      if (!nome) return '?';
+      return nome.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+    }
+
+    function showToast(msg, type = 'ok') {
+      const t = document.getElementById('toast');
+      const icon = type === 'ok' ? '✓' : '✕';
+      t.className = `toast show ${type}`;
+      t.innerHTML = `<span style="color:${type==='ok'?'var(--success-light)':'var(--danger-light)'}">${icon}</span> ${msg}`;
+      setTimeout(() => t.className = 'toast', 3500);
+    }
+
+    async function apiFetch(path, opts = {}) {
+      const r = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+      });
+      if (!r.ok) {
+        let err = `Erro ${r.status}`;
+        try { const j = await r.json(); err = j.detail || j.title || err; } catch(_) {}
+        throw new Error(err);
+      }
+      if (r.status === 204) return null;
+      return r.json();
+    }
+
+    async function loadAll() {
+      try {
+        [tarefas, usuarios] = await Promise.all([
+          apiFetch('/tarefas'),
+          apiFetch('/usuarios')
+        ]);
+        updateStats();
+        renderTarefas();
+        renderUsuarios();
+        populateUserSelect();
+      } catch(e) {
+        showToast('API offline. Verifique se o servidor está rodando em localhost:8080', 'err');
+        document.getElementById('tarefas-body').innerHTML =
+          `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">○</div><div class="empty-text">Não foi possível conectar à API</div></div></td></tr>`;
+        document.getElementById('usuarios-body').innerHTML =
+          `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">○</div><div class="empty-text">Não foi possível conectar à API</div></div></td></tr>`;
+      }
+    }
+
+    function updateStats() {
+      const pend = tarefas.filter(t => t.status === 'PENDENTE').length;
+      const done = tarefas.filter(t => t.status === 'CONCLUIDA').length;
+      document.getElementById('c-total').textContent = tarefas.length;
+      document.getElementById('c-pend').textContent = pend;
+      document.getElementById('c-done').textContent = done;
+      document.getElementById('stat-pend').textContent = pend;
+      document.getElementById('stat-done').textContent = done;
+      document.getElementById('stat-users').textContent = usuarios.length;
+      document.getElementById('task-count-label').textContent = `${tarefas.length} tarefa${tarefas.length !== 1 ? 's' : ''} no total`;
+      document.getElementById('user-count-label').textContent = `${usuarios.length} usuário${usuarios.length !== 1 ? 's' : ''} cadastrados`;
+    }
+
+    function setFilter(f, el) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      renderTarefas();
+    }
+
+    function renderTarefas() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      let list = tarefas;
+      if (currentFilter !== 'todos') list = list.filter(t => t.status === currentFilter);
+      if (q) list = list.filter(t =>
+        t.titulo.toLowerCase().includes(q) ||
+        (t.usuario?.nome || '').toLowerCase().includes(q)
+      );
+
+      const tbody = document.getElementById('tarefas-body');
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">○</div><div class="empty-text">Nenhuma tarefa encontrada</div></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(t => `
+        <tr onclick="editTarefa(${t.id})">
+          <td>
+            <div class="task-title">${t.titulo}</div>
+            <div class="task-desc">${t.descricao || ''}</div>
+          </td>
+          <td>
+            <span class="badge ${t.status === 'CONCLUIDA' ? 'badge-done' : 'badge-pending'}">
+              <span class="badge-dot"></span>
+              ${t.status === 'CONCLUIDA' ? 'concluída' : 'pendente'}
+            </span>
+          </td>
+          <td>
+            <div class="user-chip">
+              <div class="avatar">${initials(t.usuario?.nome)}</div>
+              ${t.usuario?.nome || '—'}
+            </div>
+          </td>
+          <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${formatDate(t.dataCadastro)}</td>
+          <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${formatDate(t.dataConclusao)}</td>
+          <td onclick="event.stopPropagation()">
+            <div class="action-row">
+              <button class="icon-btn" onclick="toggleStatus(${t.id}, event)" title="${t.status === 'CONCLUIDA' ? 'Reabrir' : 'Concluir'}">
+                ${t.status === 'CONCLUIDA' ? '↺' : '✓'}
+              </button>
+              <button class="icon-btn danger" onclick="askDelete('tarefa', ${t.id}, event)" title="Excluir">✕</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderUsuarios() {
+      const tbody = document.getElementById('usuarios-body');
+      if (!usuarios.length) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">○</div><div class="empty-text">Nenhum usuário cadastrado</div></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = usuarios.map(u => {
+        const uTarefas = tarefas.filter(t => t.usuario?.id === u.id).length;
+        return `
+          <tr onclick="editUsuario(${u.id})">
+            <td>
+              <div class="user-chip">
+                <div class="avatar" style="width:28px;height:28px;font-size:11px">${initials(u.nome)}</div>
+                <span style="color:var(--text);font-size:13px">${u.nome}</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px">${u.email}</td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${uTarefas} tarefa${uTarefas !== 1 ? 's' : ''}</td>
+            <td onclick="event.stopPropagation()">
+              <div class="action-row">
+                <button class="icon-btn danger" onclick="askDelete('usuario', ${u.id}, event)" title="Excluir">✕</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function populateUserSelect() {
+      const sel = document.getElementById('t-usuario');
+      const current = sel.value;
+      sel.innerHTML = `<option value="">Selecione...</option>` +
+        usuarios.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+      if (current) sel.value = current;
+    }
+
+    function showView(v) {
+      document.getElementById('view-tarefas').style.display = v === 'tarefas' ? 'block' : 'none';
+      document.getElementById('view-usuarios').style.display = v === 'usuarios' ? 'block' : 'none';
+      document.querySelectorAll('.nav-item').forEach((el, i) => {
+        el.classList.toggle('active', (i === 0 && v === 'tarefas') || (i === 1 && v === 'usuarios'));
+      });
+    }
+
+    function openModal(type) {
+      if (type === 'tarefa') {
+        document.getElementById('modal-tarefa-title').textContent = 'Nova tarefa';
+        document.getElementById('tarefa-id').value = '';
+        document.getElementById('t-titulo').value = '';
+        document.getElementById('t-desc').value = '';
+        document.getElementById('t-status').value = 'PENDENTE';
+        document.getElementById('t-usuario').value = '';
+        updateCount('t-titulo', 'count-titulo', 20);
+        updateCount('t-desc', 'count-desc', 40);
+      }
+      if (type === 'usuario') {
+        document.getElementById('modal-usuario-title').textContent = 'Novo usuário';
+        document.getElementById('usuario-id').value = '';
+        document.getElementById('u-nome').value = '';
+        document.getElementById('u-email').value = '';
+      }
+      document.getElementById(`modal-${type}`).classList.add('open');
+    }
+
+    function closeModal(type) {
+      document.getElementById(`modal-${type}`).classList.remove('open');
+    }
+
+    function editTarefa(id) {
+      const t = tarefas.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('modal-tarefa-title').textContent = 'Editar tarefa';
+      document.getElementById('tarefa-id').value = t.id;
+      document.getElementById('t-titulo').value = t.titulo;
+      document.getElementById('t-desc').value = t.descricao || '';
+      document.getElementById('t-status').value = t.status;
+      document.getElementById('t-usuario').value = t.usuario?.id || '';
+      updateCount('t-titulo', 'count-titulo', 20);
+      updateCount('t-desc', 'count-desc', 40);
+      document.getElementById('modal-tarefa').classList.add('open');
+    }
+
+    function editUsuario(id) {
+      const u = usuarios.find(x => x.id === id);
+      if (!u) return;
+      document.getElementById('modal-usuario-title').textContent = 'Editar usuário';
+      document.getElementById('usuario-id').value = u.id;
+      document.getElementById('u-nome').value = u.nome;
+      document.getElementById('u-email').value = u.email;
+      document.getElementById('modal-usuario').classList.add('open');
+    }
+
+    async function saveTarefa() {
+      const id = document.getElementById('tarefa-id').value;
+      const body = {
+        titulo: document.getElementById('t-titulo').value.trim(),
+        descricao: document.getElementById('t-desc').value.trim(),
+        status: document.getElementById('t-status').value,
+        usuarioId: parseInt(document.getElementById('t-usuario').value) || null
+      };
+      if (!body.titulo) { showToast('Título é obrigatório', 'err'); return; }
+      try {
+        if (id) {
+          await apiFetch(`/tarefas/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+          showToast('Tarefa atualizada com sucesso');
+        } else {
+          await apiFetch('/tarefas', { method: 'POST', body: JSON.stringify(body) });
+          showToast('Tarefa criada com sucesso');
+        }
+        closeModal('tarefa');
+        await loadAll();
+      } catch(e) { showToast(e.message, 'err'); }
+    }
+
+    async function saveUsuario() {
+      const id = document.getElementById('usuario-id').value;
+      const body = {
+        nome: document.getElementById('u-nome').value.trim(),
+        email: document.getElementById('u-email').value.trim()
+      };
+      if (!body.nome || !body.email) { showToast('Preencha todos os campos', 'err'); return; }
+      try {
+        if (id) {
+          // Nota: seu backend usa @PostMapping para atualizar usuário
+          await apiFetch(`/usuarios/${id}`, { method: 'POST', body: JSON.stringify(body) });
+          showToast('Usuário atualizado com sucesso');
+        } else {
+          await apiFetch('/usuarios', { method: 'POST', body: JSON.stringify(body) });
+          showToast('Usuário criado com sucesso');
+        }
+        closeModal('usuario');
+        await loadAll();
+      } catch(e) { showToast(e.message, 'err'); }
+    }
+
+    async function toggleStatus(id, e) {
+      e.stopPropagation();
+      const t = tarefas.find(x => x.id === id);
+      if (!t) return;
+      const next = t.status === 'CONCLUIDA' ? 'PENDENTE' : 'CONCLUIDA';
+      try {
+        await apiFetch(`/tarefas/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: next }) });
+        showToast(`Status alterado para ${next === 'CONCLUIDA' ? 'concluída' : 'pendente'}`);
+        await loadAll();
+      } catch(e) { showToast(e.message, 'err'); }
+    }
+
+    function askDelete(type, id, e) {
+      if (e) e.stopPropagation();
+      deleteTarget = { type, id };
+      const msg = type === 'tarefa'
+        ? 'Esta ação é irreversível. A tarefa será excluída permanentemente.'
+        : 'Este usuário será removido permanentemente.';
+      document.getElementById('confirm-msg').textContent = msg;
+      document.getElementById('modal-confirm').classList.add('open');
+    }
+
+    async function confirmDelete() {
+      if (!deleteTarget) return;
+      const { type, id } = deleteTarget;
+      try {
+        await apiFetch(`/${type}s/${id}`, { method: 'DELETE' });
+        showToast(`${type === 'tarefa' ? 'Tarefa' : 'Usuário'} excluído com sucesso`);
+        closeModal('confirm');
+        await loadAll();
+      } catch(e) {
+        showToast(e.message, 'err');
+        closeModal('confirm');
+      }
+      deleteTarget = null;
+    }
+
+    function updateCount(inputId, countId, max) {
+      const len = document.getElementById(inputId).value.length;
+      const el = document.getElementById(countId);
+      el.textContent = `${len}/${max}`;
+      el.className = `char-count${len >= max * 0.85 ? ' warn' : ''}`;
+    }
+
+    loadAll();
+</script>
+
+</body>
+</html>
