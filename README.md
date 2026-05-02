@@ -156,9 +156,25 @@ GET /tarefas
 GET /tarefas/{id}  
 PUT /tarefas/{id}  
 DELETE /tarefas/{id}  
-PUT /tarefas/{id}/status  
+PUT /tarefas/{id}/status 
+
+## 🎨 Frontend
+
+O frontend foi desenvolvido em **HTML, CSS e JavaScript puro** com auxílio do **Claude**, e está integrado diretamente ao projeto Spring Boot servido como arquivo estático em `src/main/resources/static/`.
+
+### ✅ Funcionalidades da interface
+
+- 📊 Dashboard com cards de resumo (total, pendentes, concluídas)
+- 📋 Listagem de tarefas e usuários em tabela interativa
+- 🔍 Filtro por status e busca em tempo real
+- 🖊️ Modais para criar e editar tarefas e usuários
+- 🔄 Alternância de status direto na tabela (pendente ↔ concluída)
+- 🔢 Contador de caracteres respeitando os limites das validações do backend
+- ⚠️ Exibição das mensagens de erro retornadas pela API via `ProblemDetail`
+
+> 💡 A IA foi utilizada como ferramenta de apoio no desenvolvimento da interface, acelerando a criação do frontend enquanto o foco principal era mantido na arquitetura e qualidade do backend. Isso demonstra como ferramentas de IA podem ser integradas de forma produtiva no fluxo de trabalho de um desenvolvedor.
 
 
 ## 👨‍💻 Autor
 
-Projeto desenvolvido por **Michel** como estudo de backend com Java e Spring Boot.
+Projeto desenvolvido por **Michel**.
